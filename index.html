@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DecisionChain: Interactive Financial Logic Orchestration</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    
+    <link rel="stylesheet" href="static/css/decisionchain.css">
+
+    <style>
+        /* Additional styles for the Login Screen and App Container */
+        #login-screen {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--background-primary);
+        }
+        .login-box {
+            width: 100%;
+            max-width: 400px;
+            padding: 2.5rem;
+            background-color: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            text-align: center;
+        }
+        .login-box h1 {
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+        }
+        .login-box .data-description {
+            margin-bottom: 2rem;
+        }
+        .login-box .control-group {
+            text-align: left;
+            margin-bottom: 1.5rem;
+        }
+        .login-box input {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+        }
+        #login-error {
+            color: var(--color-red);
+            margin-top: 1rem;
+            min-height: 1.2rem;
+            font-size: 0.9rem;
+        }
+        #app-container {
+            display: none; /* Hidden by default */
+            width: 100%;
+            height: 100%;
+            animation: fadeInApp 0.5s ease-in-out;
+        }
+        @keyframes fadeInApp {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .usage-bar {
+            width: 100%; background-color: var(--background-tertiary); border-radius: 6px; height: 12px; overflow: hidden;
+        }
+        .usage-bar > div {
+            background-color: var(--accent-primary); height: 100%;
+        }
+        .setup-nav { list-style: none; padding: 0; }
+        .setup-nav li a { display: block; padding: 0.75rem; text-decoration: none; color: var(--text-secondary); border-radius: 6px; }
+        .setup-nav li a:hover { background-color: var(--background-tertiary); color: var(--text-primary); }
+        .setup-nav li a.active { background-color: var(--accent-primary-soft); color: var(--accent-primary); font-weight: 600; }
+    </style>
+    
+</head>
+<body>
+
+    <div id="login-screen">
+        <div class="login-box">
+            <div class="sidebar-header" style="justify-content: center;">
+                <div class="logo">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 16.875h3.375m0 0h3.375m-3.375 0V13.5m0 3.375v3.375M6 10.5h2.25a2.25 2.25 0 002.25-2.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v2.25A2.25 2.25 0 006 10.5zm0 9.75h2.25A2.25 2.25 0 0010.5 18v-2.25a2.25 2.25 0 00-2.25-2.25H6a2.25 2.25 0 00-2.25 2.25V18A2.25 2.25 0 006 20.25z" /></svg>
+                </div>
+                <h1>DecisionChain</h1>
+            </div>
+            <p class="data-description">Verifiable Correctness for Financial Logic</p>
+            <div class="control-group">
+                <label for="login-email">Email Address</label>
+                <input type="email" id="login-email" value="demo@finpro.dev">
+            </div>
+             <div class="control-group">
+                <label for="login-password">Password</label>
+                <input type="password" id="login-password" value="password123">
+            </div>
+            <button class="styled-button" style="width: 100%; padding: 0.75rem;" onclick="handleLogin()">Login</button>
+            <p id="login-error"></p>
+        </div>
+    </div>
+
+
+    <div id="app-container">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 16.875h3.375m0 0h3.375m-3.375 0V13.5m0 3.375v3.375M6 10.5h2.25a2.25 2.25 0 002.25-2.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v2.25A2.25 2.25 0 006 10.5zm0 9.75h2.25A2.25 2.25 0 0010.5 18v-2.25a2.25 2.25 0 00-2.25-2.25H6a2.25 2.25 0 00-2.25 2.25V18A2.25 2.25 0 006 20.25z" /></svg>
+                </div>
+                <h1>DecisionChain</h1>
+            </div>
+            
+            <div class="panel" style="background-color: var(--background-primary); padding: 1rem; margin-bottom: 1.5rem; text-align: center;">
+                <h3 id="org-name-sidebar" class="section-header" style="font-size: 1.1rem;"></h3>
+                <p id="org-plan-sidebar" class="data-description" style="margin-bottom: 0;"></p>
+            </div>
+
+            <ul class="sidebar-nav">
+                <li class="nav-item">
+                    <a href="#" class="nav-link active" data-page="hub">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v-2h-2z" /></svg>
+                        <span>Execution Hub</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-page="registry">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z" /></svg>
+                        <span>Contract Registry</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-page="models">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" /></svg>
+                        <span>Model Control</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-page="oracles">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
+                        <span>Oracle Monitor</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-page="audit">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M11.5 2C6.81 2 3 5.81 3 10.5S6.81 19 11.5 19h.5v3l4-3h3c1.1 0 2-.9 2-2V7c0-2.76-2.24-5-5-5h-3zm2.5 11.5h-5v-2h5v2zm0-3h-5v-2h5v2z" /></svg>
+                        <span>Audit Trail</span>
+                    </a>
+                </li>
+                 <li class="nav-item">
+                    <a href="#" class="nav-link" data-page="sandbox">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M21 16.5c0 .88-.72 1.62-1.5 1.75v-3.5c.83.13 1.5.87 1.5 1.75zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM6 12c0-3.31 2.69-6 6-6s6 2.69 6 6H6z" /></svg>
+                        <span>Simulation Sandbox</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-page="api">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M14.47 2.47a.75.75 0 011.06 0l6 6a.75.75 0 010 1.06l-6 6a.75.75 0 11-1.06-1.06L19.94 9l-5.47-5.47a.75.75 0 010-1.06zM9.53 21.53a.75.75 0 01-1.06 0l-6-6a.75.75 0 010-1.06l6-6a.75.75 0 011.06 1.06L4.06 15l5.47 5.47a.75.75 0 010 1.06z" clip-rule="evenodd" /></svg>
+                        <span>API Portal</span>
+                    </a>
+                </li>
+                 <li class="nav-item">
+                    <a href="#" class="nav-link" data-page="profile">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M4.5 2.25a.75.75 0 000 1.5v16.5a.75.75 0 000 1.5h15a.75.75 0 000-1.5V3.75a.75.75 0 000-1.5h-15zM9 6a.75.75 0 000 1.5h6a.75.75 0 000-1.5H9zm-1.5 2.25a.75.75 0 01.75-.75h9a.75.75 0 010 1.5h-9a.75.75 0 01-.75-.75zM9 12a.75.75 0 000 1.5h6a.75.75 0 000-1.5H9zm-1.5 2.25a.75.75 0 01.75-.75h9a.75.75 0 010 1.5h-9a.75.75 0 01-.75-.75zM9 18a.75.75 0 000 1.5h6a.75.75 0 000-1.5H9z" clip-rule="evenodd" /></svg>
+                        <span>Organization</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-page="setup">
+                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6"> <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 6a.75.75 0 00-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 000-1.5h-3.75V6z" clip-rule="evenodd" /> </svg>
+                        <span>Setup & Guides</span>
+                    </a>
+                </li>
+            </ul>
+            <div class="sidebar-footer">
+                <p><strong>Platform Impact:</strong> Delivers immutable computation, fine-grained traceability, and verifiable correctness.</p>
+                <div class="footer-links">
+                    <a href="#" class="footer-link">Docs</a>
+                    <a href="#" class="footer-link">Support</a>
+                </div>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <header class="main-header">
+                <h2 id="page-title">Decision Execution Hub</h2>
+                <div class="header-actions">
+                    <input type="search" class="main-search" placeholder="Search transactions, clients, models...">
+                    <button class="icon-button">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M5.25 9a6.75 6.75 0 0113.5 0v.75c0 2.123.8 4.057 2.118 5.52a.75.75 0 01-.297 1.206c-1.544.57-3.16.99-4.831 1.253a17.45 17.45 0 01-1.443.124c-1.848.017-3.705-.155-5.558-.517a.75.75 0 01-.297-1.206c1.317-1.463 2.118-3.397 2.118-5.52V9z" clip-rule="evenodd" /></svg>
+                        <div class="notification-dot"></div>
+                    </button>
+                </div>
+            </header>
+            <div class="content-area">
+                
+                <div id="hub" class="page-content active">
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <div id="kpi-decisions-today" class="kpi-value">--</div>
+                            <div class="kpi-label">Decisions Today</div>
+                            <div id="kpi-decisions-trend" class="kpi-trend"></div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-value">99.9%</div>
+                            <div class="kpi-label">Model Uptime</div>
+                            <div class="kpi-trend up">+0.2%</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div id="kpi-value-processed" class="kpi-value">--</div>
+                            <div class="kpi-label">Value Processed</div>
+                            <div class="kpi-trend up">+210k</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div id="kpi-anomalies" class="kpi-value">--</div>
+                            <div class="kpi-label">Anomalies Detected</div>
+                            <div class="kpi-trend up">+1</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-grid dashboard-grid-3-cols">
+                        <div class="panel grid-item-col-span-2">
+                             <div class="panel-header-flex">
+                                <h3 class="section-header">Live Decision Blocks</h3>
+                                <div class="control-group">
+                                    <label class="switch">
+                                        <input type="checkbox" id="pause-feed-toggle" checked>
+                                        <span class="slider round"></span>
+                                    </label>
+                                    <span>Live Feed</span>
+                                </div>
+                             </div>
+                             <div id="decision-timeline-container" class="decision-timeline-container"></div>
+                        </div>
+                        <div class="panel grid-item-col-span-1">
+                            <h3 class="section-header">Decision Outcomes</h3>
+                            <div class="chart-container"><canvas id="decisionOutcomesChart" height="300"></canvas></div>
+                        </div>
+                        <div class="panel grid-item-col-span-2">
+                            <h3 class="section-header">Multi-Criteria Decision Analysis (TOPSIS)</h3>
+                            <p class="data-description">Comparing lending model outcomes across different client risk profiles. Click a bubble to see details.</p>
+                            <div class="chart-container" style="height: 350px;"><canvas id="hubTopsisChart"></canvas></div>
+                        </div>
+                         <div class="panel grid-item-col-span-1">
+                            <h3 class="section-header">Decision Throughput</h3>
+                            <div class="chart-container" style="height: 350px"><canvas id="decisionThroughputChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="registry" class="page-content">
+                    <div class="dashboard-grid dashboard-grid-3-cols">
+                        <div class="panel grid-item-col-span-3">
+                            <h3 class="section-header">Contract Health Overview</h3>
+                            <div class="kpi-grid">
+                                 <div class="kpi-card"><div class="kpi-value" id="registry-kpi-active">--</div><div class="kpi-label">Active Contracts</div><div class="kpi-trend up">+1</div></div>
+                                 <div class="kpi-card"><div class="kpi-value" id="registry-kpi-gas">--</div><div class="kpi-label">Avg Gas (24h)</div><div class="kpi-trend down">-0.8k</div></div>
+                                 <div class="kpi-card"><div class="kpi-value">2</div><div class="kpi-label">Failed Txns (24h)</div><div class="kpi-trend up">+1</div></div>
+                                 <div class="kpi-card"><div class="kpi-value" id="registry-kpi-deprecated">--</div><div class="kpi-label">Deprecated</div><div class="kpi-label"></div></div>
+                            </div>
+                        </div>
+                        <div class="panel grid-item-col-span-3">
+                            <div class="panel-header-flex">
+                                <h3 class="section-header">Deployed Smart Contracts</h3>
+                                <button class="styled-button" onclick="showContractDeployModal()">Deploy New Contract</button>
+                            </div>
+                            <div class="beta-table-container">
+                                 <table class="beta-table" id="contractsTable">
+                                    <thead><tr>
+                                        <th class="sortable-header" onclick="sortTable('contractsTable', 0)">Contract Name</th>
+                                        <th class="sortable-header" onclick="sortTable('contractsTable', 1)">Version</th>
+                                        <th class="sortable-header" onclick="sortTable('contractsTable', 2)">State</th>
+                                        <th>Model Binding</th>
+                                        <th class="sortable-header asc" onclick="sortTable('contractsTable', 4, true)">Deployment Date</th>
+                                        <th>Avg Gas</th>
+                                        <th>SHA-256 Hash</th>
+                                        <th>Actions</th>
+                                    </tr></thead>
+                                    <tbody></tbody>
+                                 </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="models" class="page-content">
+                    <div class="dashboard-grid dashboard-grid-2-cols">
+                        <div class="panel grid-item-col-span-1">
+                            <h3 class="section-header">Model Performance Metrics</h3>
+                            <div class="chart-container" style="height: 300px"><canvas id="modelPerformanceChart"></canvas></div>
+                        </div>
+                        <div class="panel grid-item-col-span-1">
+                            <h3 class="section-header">Model Drift Monitoring (Lending v1.0)</h3>
+                            <div class="chart-container" style="height: 300px"><canvas id="modelDriftChart"></canvas></div>
+                        </div>
+                        <div class="panel grid-item-col-span-2">
+                            <div class="panel-header-flex">
+                                <h3 class="section-header">Registered Decision Models</h3>
+                                <button class="styled-button" onclick="showModelRegisterModal()">Register New Model</button>
+                            </div>
+                             <div class="beta-table-container">
+                                 <table class="beta-table" id="modelsTable">
+                                    <thead><tr><th>Model Name</th><th>Type</th><th>Version</th><th>Usage Count</th><th>Drift Score</th><th>Status</th><th>Actions</th></tr></thead>
+                                    <tbody></tbody>
+                                 </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="oracles" class="page-content">
+                    <div class="dashboard-grid dashboard-grid-2-cols">
+                        <div class="panel grid-item-col-span-1">
+                            <h3 class="section-header">Live Oracle Feeds</h3>
+                            <div class="chart-container" style="height: 350px;"><canvas id="oracleFeedsChart"></canvas></div>
+                        </div>
+                         <div class="panel grid-item-col-span-1">
+                            <h3 class="section-header">Data Source Consensus</h3>
+                            <div class="chart-container" style="height: 350px;"><canvas id="oracleConsensusChart"></canvas></div>
+                        </div>
+                        <div class="panel grid-item-col-span-2">
+                            <h3 class="section-header">Oracle Source Integrity</h3>
+                            <div class="beta-table-container">
+                                 <table class="beta-table">
+                                    <thead><tr><th>Source</th><th>Data Feed</th><th>Status</th><th>Last Update</th><th>Consensus Weight</th><th>Integrity Score</th></tr></thead>
+                                    <tbody id="oracle-integrity-table"></tbody>
+                                 </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="audit" class="page-content">
+                    <div class="panel controls-panel">
+                         <h3 class="section-header">Query Past Decisions</h3>
+                         <div class="filter-controls" id="audit-filters" style="flex-direction: row; flex-wrap: wrap; align-items: flex-end;">
+                            <div class="control-group"><label for="filter-model-type">Model Type:</label><select id="filter-model-type"><option>All</option></select></div>
+                            <div class="control-group"><label for="filter-client-key">Client Key:</label><input type="text" id="filter-client-key" placeholder="e.g., cust_1a2b3c"></div>
+                            <div class="control-group"><label for="filter-date-start">Date Range:</label><input type="date" id="filter-date-start"></div>
+                            <div class="control-group"><label for="filter-date-end">&nbsp;</label><input type="date" id="filter-date-end"></div>
+                            <button class="styled-button action-button" onclick="applyAuditFilter()">Query</button>
+                            <button class="styled-button action-button" style="background-color: var(--color-green);" onclick="exportAuditToCsv()">Export to CSV</button>
+                         </div>
+                    </div>
+                    <div class="panel">
+                        <h3 class="section-header">Audit Trail Results</h3>
+                         <div class="beta-table-container">
+                             <table class="beta-table" id="auditTrailTable">
+                                <thead><tr><th>Transaction ID</th><th>Timestamp</th><th>Model Used</th><th>Client Key</th><th>Decision</th><th>View Details</th></tr></thead>
+                                <tbody></tbody>
+                             </table>
+                        </div>
+                    </div>
+                </div>
+
+                 <div id="sandbox" class="page-content">
+                    <div class="interactive-layout">
+                        <div class="panel controls-panel">
+                            <h3 class="section-header">Loan Application Simulator</h3>
+                            <p class="data-description">Adjust applicant details and market conditions to see the real-time decision outcome from the Lending Model.</p>
+                            
+                            <div id="sandbox-inputs">
+                                <div class="control-group">
+                                    <label>Credit Score: <span class="value-display" id="sim-credit-score-val">680</span></label>
+                                    <input type="range" class="styled-range" id="sim-credit-score" min="300" max="850" value="680" oninput="runDecisionSimulation()">
+                                </div>
+                                <div class="control-group">
+                                    <label>Debt-to-Income Ratio: <span class="value-display" id="sim-dti-val">40%</span></label>
+                                    <input type="range" id="sim-dti" min="0" max="100" value="40" oninput="runDecisionSimulation()">
+                                </div>
+                                <div class="control-group">
+                                    <label>Loan-to-Value (LTV): <span class="value-display" id="sim-ltv-val">80%</span></label>
+                                    <input type="range" id="sim-ltv" min="0" max="100" value="80" oninput="runDecisionSimulation()">
+                                </div>
+                                 <div class="control-group">
+                                    <label>Loan Amount: <span class="value-display" id="sim-loan-amount-val">$250,000</span></label>
+                                    <input type="range" id="sim-loan-amount" min="10000" max="1000000" step="1000" value="250000" oninput="runDecisionSimulation()">
+                                </div>
+                                <div class="control-group">
+                                    <label>Economic Stress Factor: <span class="value-display" id="sim-risk-val">25%</span></label>
+                                    <input type="range" id="sim-risk" min="0" max="100" value="25" oninput="runDecisionSimulation()">
+                                </div>
+                            </div>
+                             <div class="control-group">
+                                <button class="styled-button" onclick="compareScenario()">Compare Scenario</button>
+                            </div>
+                        </div>
+
+                        <div class="results-layout-vertical">
+                             <div class="panel" id="decision-output-panel">
+                                <h3 class="section-header">Real-Time Decision Outcome</h3>
+                                <div class="info-metric large">
+                                    <div id="sim-decision-output" class="value">--</div>
+                                    <div id="sim-decision-reason" class="label">Adjust parameters to see a result.</div>
+                                </div>
+                            </div>
+                            <div class="panel">
+                                <h3 class="section-header">Decision Probability Waterfall</h3>
+                                <div id="sim-waterfall-container" class="waterfall-container"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="api" class="page-content">
+                    <div class="panel">
+                        <h3 class="section-header">API Key Management</h3>
+                        <p class="data-description">Use this key to authenticate your API requests. This key is unique to your organization.</p>
+                        <div class="api-key-manager">
+                            <input type="password" id="api-key-input" readonly>
+                            <button class="icon-button" id="toggle-key-visibility" onclick="toggleApiKeyVisibility()" title="Show/Hide API Key">
+                                <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                                    <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
+                                    <path fill-rule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.18l.88-1.84a1.65 1.65 0 011.52-.906l1.32.11a1.65 1.65 0 011.233.918l.22.44a1.65 1.65 0 001.992 0l.22-.44a1.65 1.65 0 011.233-.918l1.32-.11a1.65 1.65 0 011.52.906l.88 1.84c.42.878.42 1.902 0 2.78l-.88 1.84a1.65 1.65 0 01-1.52.906l-1.32-.11a1.65 1.65 0 01-1.233-.918l-.22-.44a1.65 1.65 0 00-1.992 0l-.22.44a1.65 1.65 0 01-1.233.918l-1.32.11a1.65 1.65 0 01-1.52-.906l-.88-1.84a1.651 1.651 0 010-1.18zM10 8a2 2 0 100 4 2 2 0 000-4z" clip-rule="evenodd" />
+                                </svg>
+                                <svg id="eye-slash-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5" style="display: none;">
+                                    <path d="M3.28 2.22a.75.75 0 00-1.06 1.06l14.5 14.5a.75.75 0 101.06-1.06l-1.745-1.745a10.029 10.029 0 003.3-4.38 1.651 1.651 0 000-1.18l-.88-1.84a1.65 1.65 0 00-1.52-.906l-1.32.11a1.65 1.65 0 00-1.233.918l-.22.44a1.65 1.65 0 01-1.992 0l-.22-.44a1.65 1.65 0 00-1.233-.918L13.28 3.72a.75.75 0 00-1.06-1.06L3.28 2.22zM7.5 11.25a2.5 2.5 0 013.232-2.332l-2.332 3.232A2.5 2.5 0 017.5 11.25zM10 12.5a2.5 2.5 0 01-2.5-2.5 1.65 1.65 0 01.325-1.002l1.002-.325A2.5 2.5 0 0110 12.5z" />
+                                </svg>
+                            </button>
+                            <button class="styled-button" onclick="copyApiKey()">Copy</button>
+                            <button class="styled-button secondary-button" onclick="regenerateApiKey()">Regenerate</button>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-grid dashboard-grid-3-cols">
+                        <div class="panel grid-item-col-span-2">
+                            <h3 class="section-header">This Month's API Usage</h3>
+                            <div class="chart-container" style="height: 250px;"><canvas id="apiUsageChart"></canvas></div>
+                        </div>
+                        <div class="panel grid-item-col-span-1">
+                            <h3 class="section-header">Usage Overview</h3>
+                            <div class="kpi-grid" style="grid-template-columns: 1fr;">
+                                <div class="kpi-card"><div class="kpi-value" id="api-kpi-requests">--</div><div class="kpi-label">Requests (This Month)</div></div>
+                                <div class="kpi-card"><div class="kpi-value">78ms</div><div class="kpi-label">Average Latency</div></div>
+                                <div class="kpi-card"><div class="kpi-value">0.01%</div><div class="kpi-label">Error Rate</div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <h3 class="section-header">API Explorer</h3>
+                        <p class="data-description">Make test requests to our API endpoints directly from your browser.</p>
+                        <div class="api-explorer">
+                            <div>
+                                <div class="control-group">
+                                    <label for="api-endpoint-select">Endpoint</label>
+                                    <select id="api-endpoint-select" class="main-search">
+                                        <option value="/api/v1/decision/lending">POST /api/v1/decision/lending</option>
+                                        <option value="/api/v1/decision/risk">POST /api/v1/decision/risk</option>
+                                        <option value="/api/v1/status">GET /api/v1/status</option>
+                                    </select>
+                                </div>
+                                 <div class="control-group">
+                                    <label for="api-request-body">Request Body (JSON)</label>
+                                    <textarea id="api-request-body"></textarea>
+                                </div>
+                                <button class="styled-button" onclick="sendApiRequest()">Send Request</button>
+                            </div>
+                            <div>
+                                <div class="control-group">
+                                    <label>Response</label>
+                                    <div id="api-response-body" class="code-block" style="min-height: 280px;">
+                                        <span style="color: var(--text-secondary)">Your response will appear here...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <h3 class="section-header">Recent API Activity</h3>
+                        <div class="beta-table-container">
+                            <table class="beta-table" id="apiActivityTable">
+                                <thead><tr><th>Timestamp</th><th>Method</th><th>Endpoint</th><th>Status</th><th>Latency</th></tr></thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="profile" class="page-content">
+                    <div class="dashboard-grid dashboard-grid-2-cols">
+                        <div class="panel">
+                            <h3 class="section-header">Profile Details</h3>
+                            <div class="control-group">
+                                <label for="profile-org-name">Organization Name</label>
+                                <input type="text" id="profile-org-name" class="main-search">
+                            </div>
+                             <div class="control-group">
+                                <label for="profile-org-id">Organization ID</label>
+                                <input type="text" id="profile-org-id" class="main-search" readonly>
+                            </div>
+                            <button class="styled-button" onclick="saveProfile()">Save Changes</button>
+                        </div>
+                         <div class="panel">
+                            <h3 class="section-header">Subscription Plan</h3>
+                            <p class="data-description">You are currently on the <strong id="profile-plan-name"></strong> plan.</p>
+                            <div class="kpi-grid" style="grid-template-columns: 1fr 1fr;">
+                                <div class="kpi-card" style="border-color: var(--color-green);">
+                                    <div id="profile-quota-requests" class="kpi-value"></div>
+                                    <div class="kpi-label">API Requests / Month</div>
+                                </div>
+                                <div class="kpi-card" style="border-color: var(--color-green);">
+                                    <div id="profile-quota-models" class="kpi-value"></div>
+                                    <div class="kpi-label">Custom Models</div>
+                                </div>
+                            </div>
+                            <button class="styled-button" style="background-color: var(--color-green);">Upgrade Plan</button>
+                        </div>
+                    </div>
+                    <div class="panel">
+                        <h3 class="section-header">Monthly Usage</h3>
+                        <div class="control-group" style="margin-bottom: 1rem;">
+                            <label>API Requests</label>
+                            <div id="profile-usage-bar-requests"></div>
+                        </div>
+                        <div class="control-group">
+                            <label>Custom Models Deployed</label>
+                            <div id="profile-usage-bar-models"></div>
+                        </div>
+                    </div>
+                    <div class="panel">
+                        <h3 class="section-header">Team Members</h3>
+                        <div class="beta-table-container">
+                            <table class="beta-table" id="teamMembersTable">
+                                <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Actions</th></tr></thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                         <button class="styled-button" style="margin-top: 1rem;">Invite New Member</button>
+                    </div>
+                </div>
+
+                <div id="setup" class="page-content">
+                    <div class="interactive-layout" style="grid-template-columns: 250px 1fr;">
+                        <div class="panel">
+                            <h3 class="section-header">Table of Contents</h3>
+                            <ul class="setup-nav" id="setup-nav-list">
+                                <li><a href="#setup-welcome" class="active">Welcome</a></li>
+                                <li><a href="#setup-quickstart">Quick Start Guide</a></li>
+                                <li><a href="#setup-concepts">Core Concepts</a></li>
+                                <li><a href="#setup-api-ref">API Reference</a></li>
+                            </ul>
+                        </div>
+                        <div class="panel" id="setup-content-area">
+                            </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <div id="app-modal" class="modal-overlay" style="display: none;">
+            <div class="modal-content">
+                <button class="modal-close" onclick="hideModal()">&times;</button>
+                <h2 id="modal-title"></h2>
+                <div id="modal-body"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+// =================================================================================
+// DecisionChain :: DATA STORE & GLOBAL STATE
+// =================================================================================
+let appState = {};
+let isFeedPaused = false;
+let currentSortColumn = { table: 'contractsTable', index: 4, dir: 'asc' };
+let lastScenario = null;
+let apiActivityLog = [];
+let charts = {};
+let currentFilteredAuditData = []; // To hold data for CSV export
+
+const NOW = new Date('2025-07-07T19:22:50.000Z');
+const PRODUCT_LAUNCH_DATE = new Date(NOW);
+PRODUCT_LAUNCH_DATE.setMonth(NOW.getMonth() - 5);
+
+// =================================================================================
+// State Management (Data Persistence)
+// =================================================================================
+function generateDefaultState() {
+    const generateRandomHash = (length = 8) => Math.random().toString(36).substring(2, 2 + length);
+    const getRandomDate = (start, end) => new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+
+    const defaultDecisionModels = [
+        { id: 'lending_v1.0', name: 'Lending Model', type: 'TOPSIS', version: '1.0', usage: 8432, drift: 0.08, status: 'Active', performance: { acc: 0.94, prec: 0.91, f1: 0.92 } },
+        { id: 'risk_v1.1', name: 'Risk Classification', type: 'AHP', version: '1.1', usage: 5123, drift: 0.04, status: 'Active', performance: { acc: 0.97, prec: 0.95, f1: 0.96 } },
+        { id: 'valuation_v0.9', name: 'Asset Valuation', type: 'Scoring', version: '0.9', usage: 1209, drift: 0.15, status: 'Active', performance: { acc: 0.92, prec: 0.89, f1: 0.90 } },
+        { id: 'fraud_v2.0', name: 'Fraud Detection', type: 'Isolation Forest', version: '2.0', usage: 11240, drift: 0.02, status: 'Active', performance: { acc: 0.99, prec: 0.97, f1: 0.98 } },
+    ];
+
+    return {
+        organization: {
+            id: `org_${generateRandomHash(12)}`,
+            name: "FinPro Innovators",
+            plan: "Enterprise",
+            apiKey: `dc_live_${generateRandomHash(24)}`,
+            team: [
+                { name: "Alice Johnson", email: "alice@finpro.dev", role: "Admin" },
+                { name: "Bob Williams", email: "bob@finpro.dev", role: "Developer" },
+                { name: "Charlie Brown", email: "charlie@finpro.dev", role: "Developer" },
+                { name: "Diana Prince", email: "diana@finpro.dev", role: "Auditor" },
+            ],
+            quotas: {
+                requests: { current: 482103, limit: 1000000 },
+                models: { current: 4, limit: 10 },
+            }
+        },
+        decisionModels: defaultDecisionModels,
+        smartContracts: [
+            { id: 1, name: 'LoanProcessor', version: '1.0.0', state: 'Active', bindings: 'lending_v1.0', deployed: getRandomDate(PRODUCT_LAUNCH_DATE, NOW).toISOString(), gas: 52300, hash: generateRandomHash(16) },
+            { id: 2, name: 'RiskClassifier', version: '1.0.1', state: 'Active', bindings: 'risk_v1.1', deployed: getRandomDate(PRODUCT_LAUNCH_DATE, NOW).toISOString(), gas: 41050, hash: generateRandomHash(16) },
+            { id: 3, name: 'AssetValuator', version: '0.9.0', state: 'Active', bindings: 'valuation_v0.9', deployed: getRandomDate(PRODUCT_LAUNCH_DATE, NOW).toISOString(), gas: 68000, hash: generateRandomHash(16) },
+            { id: 4, name: 'TreasuryVault', version: '1.0.0', state: 'Active', bindings: '', deployed: getRandomDate(PRODUCT_LAUNCH_DATE, NOW).toISOString(), gas: 35000, hash: generateRandomHash(16) },
+            { id: 5, name: 'FraudDetector', version: '2.0.0', state: 'Active', bindings: 'fraud_v2.0', deployed: getRandomDate(PRODUCT_LAUNCH_DATE, NOW).toISOString(), gas: 71500, hash: generateRandomHash(16) },
+        ],
+        auditTrail: Array.from({ length: 500 }).map((_, i) => {
+            const model = defaultDecisionModels[i % defaultDecisionModels.length];
+            const decision = Math.random() > 0.4 ? {decision: 'Approved'} : {decision: 'Denied'};
+            return {
+                id: `txn_${generateRandomHash()}`, time: getRandomDate(PRODUCT_LAUNCH_DATE, NOW).toISOString(),
+                model: model.name, client: `cust_${generateRandomHash(4)}`,
+                out: decision.decision === 'Approved' ? {...decision, limit: Math.floor(Math.random()*100000)} : {...decision, reason: 'Risk threshold exceeded'},
+                inputs: { score: 600 + Math.floor(Math.random()*250), dti: (Math.random()*0.6).toFixed(2), ltv: (Math.random()*0.4 + 0.5).toFixed(2) }
+            };
+        })
+    };
+}
+
+function saveState() {
+    try {
+        localStorage.setItem('decisionChainState', JSON.stringify(appState));
+    } catch (e) {
+        console.error("Failed to save state to localStorage", e);
+    }
+}
+
+function loadState() {
+    try {
+        const savedState = localStorage.getItem('decisionChainState');
+        if (savedState) {
+            appState = JSON.parse(savedState);
+        } else {
+            appState = generateDefaultState();
+            saveState();
+        }
+    } catch (e) {
+        console.error("Failed to load state from localStorage, using default.", e);
+        appState = generateDefaultState();
+    }
+}
+
+
+// =================================================================================
+// Chart.js Configuration
+// =================================================================================
+const getCssVariable = (variable) => getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
+const globalChartOptions = (extraOptions = {}) => ({
+    responsive: true, maintainAspectRatio: false,
+    plugins: { 
+        legend: { display: false, labels: { color: getCssVariable('--text-primary') } },
+        tooltip: {
+            backgroundColor: 'rgba(0,0,0,0.7)', titleColor: '#fff', bodyColor: '#fff',
+            borderColor: getCssVariable('--accent-primary'), borderWidth: 1
+        }
+    },
+    scales: {
+        y: { ticks: { color: getCssVariable('--text-secondary') }, grid: { color: getCssVariable('--border-color-soft') } },
+        x: { ticks: { color: getCssVariable('--text-secondary') }, grid: { color: 'transparent' } }
+    }, ...extraOptions
+});
+
+// =================================================================================
+// Core Application & Login Logic
+// =================================================================================
+window.onload = () => {
+    // Page loads to the login screen. No app initialization yet.
+};
+
+function handleLogin() {
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+    const errorEl = document.getElementById('login-error');
+
+    if (email.includes('@') && password.length >= 8) {
+        errorEl.textContent = '';
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app-container').style.display = 'flex';
+        
+        initializeApp();
+
+    } else {
+        errorEl.textContent = 'Invalid credentials. Please try again.';
+    }
+}
+
+function initializeApp() {
+    loadState();
+    setupNavigation();
+    initHub();
+    initRegistry();
+    initModels();
+    initOracles();
+    initAudit();
+    initSandbox();
+    initApiPortal();
+    initProfile();
+    initSetup();
+}
+
+function setupNavigation() {
+    document.getElementById('org-name-sidebar').textContent = appState.organization.name;
+    document.getElementById('org-plan-sidebar').textContent = `${appState.organization.plan} Plan`;
+
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', e => {
+            e.preventDefault();
+            const pageId = link.getAttribute('data-page');
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+            document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            document.getElementById('page-title').textContent = link.querySelector('span').textContent;
+            
+            if(pageId === 'sandbox') runDecisionSimulation();
+            if(pageId === 'setup') initSetup(); // Re-init to handle dynamic content
+        });
+    });
+}
+
+const showModal = (title, body) => {
+    document.getElementById('modal-title').innerHTML = title;
+    document.getElementById('modal-body').innerHTML = body;
+    document.getElementById('app-modal').style.display = 'flex';
+};
+const hideModal = () => document.getElementById('app-modal').style.display = 'none';
+
+function sortTable(tableId, n, isDate = false) {
+    const table = document.getElementById(tableId);
+    const tbody = table.tBodies[0];
+    const rows = Array.from(tbody.rows);
+    const dir = (currentSortColumn.table === tableId && currentSortColumn.index === n && currentSortColumn.dir === 'desc') ? 'asc' : 'desc';
+    
+    rows.sort((a, b) => {
+        let cellA = a.cells[n].textContent.trim();
+        let cellB = b.cells[n].textContent.trim();
+        if (isDate) {
+            return dir === 'asc' ? new Date(cellA) - new Date(cellB) : new Date(cellB) - new Date(cellA);
+        }
+        let numA = parseFloat(cellA.replace(/,|\$|%/g, ''));
+        let numB = parseFloat(cellB.replace(/,|\$|%/g, ''));
+        if (!isNaN(numA) && !isNaN(numB)) {
+             return dir === 'asc' ? numA - numB : numB - numA;
+        }
+        return dir === 'asc' ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+    });
+    tbody.append(...rows);
+    table.querySelectorAll('th').forEach(th => th.classList.remove('asc', 'desc'));
+    table.querySelector(`thead th:nth-child(${n+1})`).classList.add(dir);
+    currentSortColumn = { table: tableId, index: n, dir };
+}
+
+// =================================================================================
+// PAGE INITIALIZATION FUNCTIONS
+// =================================================================================
+let liveDecisionBlocks = [];
+function initHub() {
+    const timelineContainer = document.getElementById('decision-timeline-container');
+    const pauseToggle = document.getElementById('pause-feed-toggle');
+    pauseToggle.addEventListener('change', () => isFeedPaused = !pauseToggle.checked);
+    
+    let decisionsToday = 152, valueProcessed = 845000, anomalies = 2;
+    const updateHubKPIs = () => {
+        decisionsToday += Math.floor(Math.random()*2);
+        valueProcessed += Math.floor(Math.random()*10000);
+        
+        document.getElementById('kpi-decisions-today').textContent = decisionsToday.toLocaleString();
+        document.getElementById('kpi-value-processed').textContent = `$${(valueProcessed/1000).toFixed(0)}k`;
+        document.getElementById('kpi-anomalies').textContent = anomalies;
+        document.getElementById('kpi-decisions-trend').className = Math.random() > 0.5 ? "kpi-trend up" : "kpi-trend down";
+        document.getElementById('kpi-decisions-trend').textContent = `${Math.random() > 0.5 ? '+' : '-'}${ (Math.random() * 2).toFixed(1)}%`;
+    };
+
+    const addNewDecisionBlock = () => {
+        if (isFeedPaused || document.hidden) return;
+        const model = appState.decisionModels[Math.floor(Math.random() * appState.decisionModels.length)];
+        const decision = Math.random() > 0.6 ? {status: 'Approved', class: 'approved'} : {status: 'Denied', class: 'denied'};
+        const newBlock = { id: `txn_${Math.random().toString(36).substring(2, 10)}`, modelName: model.name, client: `cust_${Math.random().toString(36).substring(2, 6)}`, hash: Math.random().toString(36).substring(2, 10), status: decision.status, statusClass: decision.class, time: new Date() };
+        liveDecisionBlocks.unshift(newBlock);
+        if (liveDecisionBlocks.length > 10) liveDecisionBlocks.pop();
+        
+        timelineContainer.innerHTML = liveDecisionBlocks.map(b => `
+            <div class="decision-block" onclick="showAuditDetails('${b.id}')">
+                <div class="status-dot ${b.statusClass}"></div>
+                <div class="block-content"><strong>${b.modelName}</strong> executed for ${b.client} <span>(${b.hash})</span><br>Result: <strong>${b.status}</strong></div>
+                <div class="block-time">${new Date(b.time).toLocaleTimeString()}</div>
+            </div>`).join('');
+    };
+
+    setInterval(addNewDecisionBlock, 3000);
+    setInterval(updateHubKPIs, 3500);
+    addNewDecisionBlock(); updateHubKPIs();
+    
+    if (charts.decisionOutcomes) charts.decisionOutcomes.destroy();
+    charts.decisionOutcomes = new Chart('decisionOutcomesChart', {
+        type: 'doughnut',
+        data: {
+            labels: ['Approved', 'Denied', 'Under Review'],
+            datasets: [{ data: [78, 18, 4], backgroundColor: [getCssVariable('--color-green'), getCssVariable('--color-red'), getCssVariable('--color-amber')], borderColor: getCssVariable('--background-secondary'), borderWidth: 4 }]
+        },
+        options: globalChartOptions({ plugins: { legend: { display: true, position: 'bottom', labels: {color: getCssVariable('--text-primary')} } } })
+    });
+    
+    if (charts.throughput) charts.throughput.destroy();
+    charts.throughput = new Chart('decisionThroughputChart', {
+        type: 'line', data: { labels: ['-60s', '-45s', '-30s', '-15s', 'Now'], datasets: [{ label: 'Decisions/sec', data: [], borderColor: getCssVariable('--accent-primary'), fill: true, backgroundColor: 'rgba(59, 130, 246, 0.1)' }] },
+        options: globalChartOptions({ scales: { y: { beginAtZero: true, suggestedMax: 10 } } })
+    });
+    setInterval(() => {
+        const data = charts.throughput.data.datasets[0].data;
+        data.push(Math.floor(Math.random() * 5) + 1);
+        if(data.length > 5) data.shift();
+        if(charts.throughput.ctx) charts.throughput.update();
+    }, 3000);
+
+    if (charts.topsis) charts.topsis.destroy();
+    charts.topsis = new Chart('hubTopsisChart', {
+        type: 'bubble', data: { datasets: [
+                { label: 'Low-Risk', data: [{x: 0.2, y: 0.9, r: 15}], backgroundColor: 'rgba(20, 184, 166, 0.7)'},
+                { label: 'Medium-Risk', data: [{x: 0.5, y: 0.6, r: 25}], backgroundColor: 'rgba(245, 158, 11, 0.7)'},
+                { label: 'High-Risk', data: [{x: 0.8, y: 0.2, r: 8}], backgroundColor: 'rgba(239, 68, 68, 0.7)'}
+            ] },
+        options: globalChartOptions({
+            scales: { x: { title: { display: true, text: 'Distance from Negative Ideal', color: getCssVariable('--text-primary') } }, y: { title: { display: true, text: 'Distance from Positive Ideal', color: getCssVariable('--text-primary') } } },
+            plugins: { tooltip: { callbacks: { label: (c) => `Client Group: ${c.dataset.label}, Size: ${c.raw.r}k` } } }
+        })
+    });
+}
+
+function initRegistry() {
+    const tableBody = document.querySelector('#contractsTable tbody');
+    window.renderContractsTable = () => {
+        tableBody.innerHTML = appState.smartContracts.map(c => `
+            <tr>
+                <td>${c.name}</td><td>${c.version}</td><td><span class="status-badge ${c.state.toLowerCase()}">${c.state}</span></td><td>${appState.decisionModels.find(m => m.id === c.bindings)?.name || 'N/A'}</td><td>${new Date(c.deployed).toISOString().split('T')[0]}</td><td>${c.gas.toLocaleString()}</td><td class="redacted-text">${c.hash}</td>
+                <td class="action-buttons"><button class="action-button small" ${c.state === 'Deprecated' ? 'disabled' : ''} onclick="deprecateContract(${c.id})">Deprecate</button></td>
+            </tr>`).join('');
+    };
+    
+    window.deprecateContract = (contractId) => {
+        const contract = appState.smartContracts.find(c => c.id === contractId);
+        if (contract) {
+            contract.state = 'Deprecated';
+            saveState();
+            renderContractsTable();
+            updateRegistryKPIs();
+        }
+    };
+
+    window.showContractDeployModal = () => {
+        const body = `<form id="deploy-contract-form" class="modal-form">
+            <div class="control-group"><label>Contract Name</label><input type="text" id="deploy-name" placeholder="e.g., NewLoanProcessor" required></div>
+            <div class="control-group"><label>Version</label><input type="text" id="deploy-version" placeholder="e.g., 1.0.0" required></div>
+            <div class="control-group"><label>Bind to Model</label><select id="deploy-binding"><option value="">None</option>${appState.decisionModels.map(m => `<option value="${m.id}">${m.name}</option>`).join('')}</select></div>
+            <button type="submit" class="styled-button">Deploy</button>
+        </form>`;
+        showModal('Deploy New Smart Contract', body);
+        document.getElementById('deploy-contract-form').onsubmit = (e) => {
+            e.preventDefault();
+            const newContract = {
+                id: Math.max(...appState.smartContracts.map(c => c.id)) + 1,
+                name: document.getElementById('deploy-name').value,
+                version: document.getElementById('deploy-version').value,
+                state: 'Active',
+                bindings: document.getElementById('deploy-binding').value,
+                deployed: new Date().toISOString(),
+                gas: 30000 + Math.floor(Math.random() * 50000),
+                hash: Math.random().toString(36).substring(2, 18)
+            };
+            appState.smartContracts.push(newContract);
+            saveState();
+            renderContractsTable();
+            updateRegistryKPIs();
+            alert('Simulation: Contract deployment successful!');
+            hideModal();
+        };
+    };
+
+    window.updateRegistryKPIs = () => {
+        const activeCount = appState.smartContracts.filter(c => c.state === 'Active').length;
+        const deprecatedCount = appState.smartContracts.length - activeCount;
+        const avgGas = appState.smartContracts.reduce((acc, c) => acc + c.gas, 0) / appState.smartContracts.length;
+        document.getElementById('registry-kpi-active').textContent = activeCount;
+        document.getElementById('registry-kpi-deprecated').textContent = deprecatedCount;
+        document.getElementById('registry-kpi-gas').textContent = `${(avgGas/1000).toFixed(1)}k`;
+    };
+
+    renderContractsTable();
+    sortTable('contractsTable', 4, true);
+    updateRegistryKPIs();
+}
+
+function initModels() {
+    const tableBody = document.querySelector('#modelsTable tbody');
+    tableBody.innerHTML = appState.decisionModels.map(m => `
+        <tr><td>${m.name}</td><td>${m.type}</td><td>${m.version}</td><td>${m.usage.toLocaleString()}</td><td><span class="status-badge ${m.drift > 0.1 ? 'warning' : 'active'}">${m.drift}</span></td><td><span class="status-badge ${m.status.toLowerCase()}">${m.status}</span></td><td class="action-buttons"><button class="action-button small">Retrain</button></td></tr>`).join('');
+    
+    window.showModelRegisterModal = () => showModal('Register New Decision Model', `<p>Model registration is handled via a secure CLI tool to ensure integrity and validation. Please refer to the documentation for instructions.</p>`);
+    
+    if (charts.modelPerformance) charts.modelPerformance.destroy();
+    charts.modelPerformance = new Chart('modelPerformanceChart', {
+        type: 'bar',
+        data: {
+            labels: appState.decisionModels.map(m => m.name.replace(' Model', '').replace(' Classification', '').replace(' Detection', '')),
+            datasets: [
+                { label: 'Accuracy', data: appState.decisionModels.map(m => m.performance.acc), backgroundColor: 'rgba(59, 130, 246, 0.7)' },
+                { label: 'Precision', data: appState.decisionModels.map(m => m.performance.prec), backgroundColor: 'rgba(16, 185, 129, 0.7)' },
+                { label: 'F1-Score', data: appState.decisionModels.map(m => m.performance.f1), backgroundColor: 'rgba(245, 158, 11, 0.7)' },
+            ]
+        },
+        options: globalChartOptions({ plugins: { legend: { display: true, position: 'bottom', labels:{color: getCssVariable('--text-primary')} } }, scales: { y: { min: 0.85, max: 1 } } })
+    });
+    
+    if (charts.modelDrift) charts.modelDrift.destroy();
+    charts.modelDrift = new Chart('modelDriftChart', {
+        type: 'line',
+        data: {
+            labels: ['Mar', 'Apr', 'May', 'Jun', 'Jul'],
+            datasets: [{ label: 'Prediction Distribution Drift', data: [0.02, 0.03, 0.02, 0.05, 0.08], borderColor: getCssVariable('--color-amber'), fill: true, backgroundColor: 'rgba(245, 158, 11, 0.1)', tension: 0.4 }]
+        },
+        options: globalChartOptions({ scales: { y: { beginAtZero: true } }})
+    });
+}
+
+function initOracles() {
+    // REAL DATA: Using the Effective Federal Funds Rate as a baseline for the US interest rate.
+    const US_INTEREST_RATE_BASELINE = 4.33;
+    const EU_INFLATION_BASELINE = 2.1;
+
+    if (charts.oracles) charts.oracles.destroy();
+    charts.oracles = new Chart('oracleFeedsChart', {
+        type: 'line', data: { labels: [], datasets: [ { label: 'Fed Funds Rate (US)', data: [], borderColor: getCssVariable('--accent-primary')}, { label: 'Inflation Index (EU)', data: [], borderColor: getCssVariable('--color-red')} ] },
+        options: globalChartOptions({plugins: {legend: {display: true, position: 'bottom', labels:{color: getCssVariable('--text-primary')}}}, scales: { x: { type: 'time', time: { unit: 'minute' } } } })
+    });
+
+    setInterval(() => {
+        if(!charts.oracles.ctx) return;
+        const now = new Date();
+        charts.oracles.data.labels.push(now);
+        charts.oracles.data.datasets.forEach((dataset, i) => {
+            const lastValue = dataset.data.length > 0 ? dataset.data[dataset.data.length - 1].y : (i === 0 ? US_INTEREST_RATE_BASELINE : EU_INFLATION_BASELINE);
+            dataset.data.push({x: now, y: lastValue + (Math.random() - 0.5) * (i === 0 ? 0.02 : 0.03) });
+            if (dataset.data.length > 30) dataset.data.shift();
+        });
+        if(charts.oracles.data.labels.length > 30) charts.oracles.data.labels.shift();
+        charts.oracles.update();
+    }, 3000);
+
+    if (charts.oracleConsensus) charts.oracleConsensus.destroy();
+    charts.oracleConsensus = new Chart('oracleConsensusChart', {
+        type: 'radar',
+        data: {
+            labels: ['Chainlink', 'Bloomberg', 'Internal API', 'Coinbase', 'Uniswap'],
+            datasets: [{ label: 'Consensus Weight', data: [0.95, 0.92, 0.88, 0.85, 0.82], backgroundColor: 'rgba(59, 130, 246, 0.2)', borderColor: getCssVariable('--accent-primary'), pointBackgroundColor: getCssVariable('--accent-primary') }]
+        },
+        options: globalChartOptions({ plugins: { legend: { display: true, position: 'bottom', labels:{color: getCssVariable('--text-primary')} } }, scales: { r: { beginAtZero: true, max: 1, pointLabels: { color: getCssVariable('--text-primary') } } } })
+    });
+
+    const oracleTableBody = document.getElementById('oracle-integrity-table');
+    const oracleSources = [ { src: 'Chainlink', feed: 'ETH/USD', status: 'Active', weight: 0.95, score: 99.8 }, { src: 'Bloomberg', feed: 'US T-Bill 10Y', status: 'Active', weight: 0.92, score: 99.9 }, { src: 'Internal API', feed: 'Client Risk Score', status: 'Active', weight: 0.88, score: 98.5 } ];
+    oracleTableBody.innerHTML = oracleSources.map(s => `<tr><td>${s.src}</td><td>${s.feed}</td><td><span class="status-badge ${s.status.toLowerCase()}">${s.status}</span></td><td>${new Date().toLocaleTimeString()}</td><td>${s.weight}</td><td>${s.score}%</td></tr>`).join('');
+}
+
+function initAudit() {
+    const tableBody = document.querySelector('#auditTrailTable tbody');
+    const modelFilter = document.getElementById('filter-model-type');
+    modelFilter.innerHTML = `<option>All</option>` + [...new Set(appState.auditTrail.map(r => r.model))].map(m => `<option>${m}</option>`).join('');
+
+    window.renderAuditTable = (data) => {
+        currentFilteredAuditData = data;
+        tableBody.innerHTML = data.length ? data.map(r => `
+            <tr onclick="showAuditDetails('${r.id}')"><td>${r.id.split('_')[1]}</td><td>${new Date(r.time).toISOString().slice(0, 19).replace('T', ' ')}</td><td>${r.model}</td><td>${r.client}</td><td>${r.out.decision}</td><td><a href="#" class="action-link">View</a></td></tr>`).join('') : `<tr><td colspan="6" style="text-align: center; padding: 2rem;">No results found for your query.</td></tr>`;
+    };
+
+    window.showAuditDetails = (id) => {
+        const record = appState.auditTrail.find(r => r.id === id) || liveDecisionBlocks.find(b => b.id === id);
+        if(!record) { alert('Record not found.'); return; }
+        const formatObject = (obj) => `<pre class="code-block">${JSON.stringify(obj, null, 2)}</pre>`;
+        const decisionStatus = record.out?.decision || record.status;
+        const body = `<div class="detail-grid"> <div><strong>Transaction ID:</strong> ${record.id}</div> <div><strong>Timestamp:</strong> ${record.time instanceof Date ? record.time.toISOString() : record.time}</div> <div><strong>Model:</strong> ${record.model || record.modelName}</div> <div><strong>Client Key:</strong> ${record.client}</div> <div class="grid-span-2"> <strong>Execution Flow:</strong> <div style="font-family: monospace; margin-top: 8px; font-size: 1.1rem;"> <span>[Inputs]</span> &rarr; <span>[Model: ${record.model || record.modelName}]</span> &rarr; <span style="color: ${decisionStatus === 'Approved' ? 'var(--color-green)' : 'var(--color-red)'}; font-weight: bold;">[Decision: ${decisionStatus}]</span> </div> </div> <div class="grid-span-2"><strong>Inputs:</strong> ${formatObject(record.inputs || {note: 'Live block, no input data available.'})}</div> <div class="grid-span-2"><strong>Output:</strong> ${formatObject(record.out || {status: record.status})}</div> </div>`;
+        showModal('Audit Trail Details', body);
+    };
+
+    window.applyAuditFilter = () => {
+        const modelType = document.getElementById('filter-model-type').value;
+        const clientKey = document.getElementById('filter-client-key').value.trim().toLowerCase();
+        const dateStart = document.getElementById('filter-date-start').value;
+        const dateEnd = document.getElementById('filter-date-end').value;
+
+        let filteredData = appState.auditTrail;
+        if(modelType !== 'All') filteredData = filteredData.filter(r => r.model === modelType);
+        if(clientKey !== '') filteredData = filteredData.filter(r => r.client.toLowerCase().includes(clientKey));
+        if (dateStart) filteredData = filteredData.filter(r => new Date(r.time) >= new Date(dateStart));
+        if (dateEnd) filteredData = filteredData.filter(r => new Date(r.time) <= new Date(dateEnd));
+        renderAuditTable(filteredData.slice(0, 50)); // Show top 50 results
+    };
+    renderAuditTable(appState.auditTrail.slice(0, 20));
+}
+
+// Add this function to your script tag
+function toggleApiKeyVisibility() {
+    const keyInput = document.getElementById('api-key-input');
+    const eyeIcon = document.getElementById('eye-icon');
+    const eyeSlashIcon = document.getElementById('eye-slash-icon');
+    const isPassword = keyInput.type === 'password';
+
+    keyInput.type = isPassword ? 'text' : 'password';
+    eyeIcon.style.display = isPassword ? 'none' : 'block';
+    eyeSlashIcon.style.display = isPassword ? 'block' : 'none';
+}
+
+function exportAuditToCsv() {
+    if (currentFilteredAuditData.length === 0) {
+        alert("No data to export. Please run a query first.");
+        return;
+    }
+
+    const headers = ['transactionId', 'timestamp', 'model', 'clientKey', 'decision', 'reason', 'limit', 'input_creditScore', 'input_dti', 'input_ltv'];
+    const rows = currentFilteredAuditData.map(row => ({
+        transactionId: row.id,
+        timestamp: row.time,
+        model: row.model,
+        clientKey: row.client,
+        decision: row.out.decision,
+        reason: row.out.reason || '',
+        limit: row.out.limit || '',
+        input_creditScore: row.inputs.score,
+        input_dti: row.inputs.dti,
+        input_ltv: row.inputs.ltv
+    }));
+
+    let csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(row => headers.map(header => JSON.stringify(row[header], (key, value) => value === null ? '' : value)).join(','))].join('\n');
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `decisionchain_audit_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function initSandbox() {
+    runDecisionSimulation();
+}
+
+function runDecisionSimulation(isComparison = false) {
+    if(!document.getElementById('sandbox').classList.contains('active') && !isComparison) return;
+
+    const creditScore = parseInt(document.getElementById('sim-credit-score').value);
+    const dti = parseInt(document.getElementById('sim-dti').value);
+    const ltv = parseInt(document.getElementById('sim-ltv').value);
+    const loanAmount = parseInt(document.getElementById('sim-loan-amount').value);
+    const risk = parseInt(document.getElementById('sim-risk').value);
+
+    if(!isComparison) {
+      document.getElementById('sim-credit-score-val').textContent = creditScore;
+      document.getElementById('sim-dti-val').textContent = `${dti}%`;
+      document.getElementById('sim-ltv-val').textContent = `${ltv}%`;
+      document.getElementById('sim-loan-amount-val').textContent = `$${loanAmount.toLocaleString()}`;
+      document.getElementById('sim-risk-val').textContent = `${risk}%`;
+    }
+
+    const factors = { base: 0.50, creditScore: ((creditScore - 300) / (850 - 300) - 0.5) * 0.5, dti: ((1 - dti / 100) < 0.6 ? -0.15 : (1 - dti / 100 - 0.7) * 0.3), ltv: ((1 - ltv / 100) < 0.2 ? -0.15 : 0), loanAmount: -(loanAmount / 1000000) * 0.1, economic: (risk / 100) * -0.2 };
+    const totalScore = Math.max(0, Math.min(1, Object.values(factors).reduce((sum, val) => sum + val, 0)));
+    const finalDecision = totalScore > 0.55 ? 'Approved' : 'Denied';
+    const reason = finalDecision === 'Approved' ? 'Applicant profile meets all lending criteria.' : (creditScore < 620 ? 'Credit score below minimum.' : (dti > 50 ? 'DTI ratio too high.' : (ltv > 95 ? 'LTV ratio too high.' : 'Calculated risk profile does not meet criteria.')));
+
+    const scenario = { inputs: { creditScore, dti, ltv, loanAmount, risk }, factors, totalScore, finalDecision, reason };
+
+    if(isComparison) return scenario;
+    
+    const outputEl = document.getElementById('sim-decision-output');
+    outputEl.textContent = finalDecision;
+    outputEl.className = `value ${finalDecision.toLowerCase()}`;
+    document.getElementById('sim-decision-reason').textContent = reason;
+    
+    renderWaterfall(scenario);
+}
+
+function renderWaterfall(scenario) {
+    const { factors, totalScore } = scenario;
+    const container = document.getElementById('sim-waterfall-container');
+    const factorLabels = { base: 'Base Probability', creditScore: 'Credit Score', dti: 'Debt-to-Income', ltv: 'Loan-to-Value', loanAmount: 'Loan Amount', economic: 'Economic Stress' };
+    
+    let html = '';
+    for (const [key, value] of Object.entries(factors)) {
+        html += `<div class="waterfall-item"><div class="waterfall-label">${factorLabels[key]}</div><div class="waterfall-bar-container"><div class="waterfall-bar ${value >= 0 ? 'positive' : 'negative'}" style="width: ${Math.abs(value) * 200}%; max-width: 100%;">${(value * 100).toFixed(1)}%</div></div></div>`;
+    }
+    html += `<div class="waterfall-item waterfall-total"><div class="waterfall-label">Final Probability</div><div class="waterfall-bar-container"><div class="waterfall-bar" style="width: ${totalScore * 100}%;">${(totalScore * 100).toFixed(1)}%</div></div></div>`;
+    container.innerHTML = html;
+}
+
+function compareScenario() {
+    const currentScenario = runDecisionSimulation(true);
+    if (!lastScenario) {
+        lastScenario = currentScenario;
+        alert('Scenario 1 saved! Adjust the sliders and click "Compare Scenario" again to see the comparison.');
+        return;
+    }
+    
+    const scenarioA = lastScenario;
+    const scenarioB = currentScenario;
+
+    const renderComparisonCard = (title, scenario) => `<div class="panel" style="flex: 1;"> <h3 class="section-header">${title}</h3> <p><strong>Credit Score:</strong> ${scenario.inputs.creditScore}, <strong>DTI:</strong> ${scenario.inputs.dti}%, <strong>LTV:</strong> ${scenario.inputs.ltv}%</p> <div class="info-metric large" style="margin-top: 1rem;"> <div class="value ${scenario.finalDecision.toLowerCase()}">${scenario.finalDecision}</div> <div class="label" style="font-size: 0.9rem;">Final Score: ${(scenario.totalScore * 100).toFixed(1)}%</div> </div> </div>`;
+    const body = `<div style="display: flex; gap: 1rem;">${renderComparisonCard('Scenario 1 (Saved)', scenarioA)}${renderComparisonCard('Scenario 2 (Current)', scenarioB)}</div>`;
+    showModal('Sandbox Scenario Comparison', body);
+    lastScenario = null;
+}
+
+function initApiPortal() {
+    document.getElementById('api-key-input').value = appState.organization.apiKey;
+    document.getElementById('api-kpi-requests').textContent = appState.organization.quotas.requests.current.toLocaleString();
+    
+    const requestBody = document.getElementById('api-request-body');
+    const defaultBody = { "applicantId": "cust_1a2b3c", "creditScore": 720, "dti": 0.35, "ltv": 0.8, "loanAmount": 250000 };
+    requestBody.value = JSON.stringify(defaultBody, null, 2);
+
+    if(charts.apiUsage) charts.apiUsage.destroy();
+    charts.apiUsage = new Chart('apiUsageChart', {
+        type: 'bar',
+        data: {
+            labels: ['Mar', 'Apr', 'May', 'Jun', 'Jul'],
+            datasets: [{ label: 'API Requests', data: [50231, 110452, 230105, 350641, appState.organization.quotas.requests.current], backgroundColor: getCssVariable('--accent-primary-soft'), borderColor: getCssVariable('--accent-primary'), borderWidth: 1 }]
+        },
+        options: globalChartOptions({ scales: { y: { beginAtZero: true } } })
+    });
+    renderApiActivityLog();
+}
+
+window.regenerateApiKey = () => {
+    if (confirm("Are you sure you want to regenerate your API key? Your old key will be invalidated.")) {
+        appState.organization.apiKey = `dc_live_${Math.random().toString(36).substring(2, 26)}`;
+        saveState();
+        document.getElementById('api-key-input').value = appState.organization.apiKey;
+        initSetup(); // To update API key in docs
+    }
+};
+window.copyApiKey = () => {
+    navigator.clipboard.writeText(document.getElementById('api-key-input').value).then(() => alert("API Key copied!"), () => alert("Failed to copy."));
+};
+
+window.sendApiRequest = () => {
+    const endpoint = document.getElementById('api-endpoint-select').value;
+    const responseBodyEl = document.getElementById('api-response-body');
+    const startTime = Date.now();
+    responseBodyEl.innerHTML = `<span style="color: var(--text-secondary)">Sending request...</span>`;
+
+    setTimeout(() => {
+        let response, status;
+        const latency = Date.now() - startTime;
+        try {
+            const requestBody = JSON.parse(document.getElementById('api-request-body').value);
+            if (endpoint.includes('lending')) {
+                const approved = requestBody.creditScore > 650 && requestBody.dti < 0.45;
+                status = 200;
+                response = { decisionId: `dec_${Math.random().toString(36).substring(2, 12)}`, decision: approved ? 'Approved' : 'Denied' };
+            } else if (endpoint.includes('risk')) {
+                 status = 200;
+                 response = { riskScore: Math.random().toFixed(2) };
+            } else {
+                 status = 200;
+                 response = { status: 'All systems operational' };
+            }
+        } catch (e) {
+            status = 400;
+            response = { error: "Bad Request", message: "Invalid JSON in request body." };
+        }
+        responseBodyEl.innerHTML = `<pre class="code-block">${JSON.stringify(response, null, 2)}</pre>`;
+        logApiActivity(endpoint, status, latency);
+    }, 500 + Math.random() * 500);
+};
+
+function logApiActivity(endpoint, status, latency) {
+    const log = { time: new Date(), method: endpoint.includes('status') ? 'GET' : 'POST', endpoint, status, latency };
+    apiActivityLog.unshift(log);
+    if(apiActivityLog.length > 10) apiActivityLog.pop();
+    renderApiActivityLog();
+}
+
+function renderApiActivityLog() {
+    const tableBody = document.querySelector('#apiActivityTable tbody');
+    tableBody.innerHTML = apiActivityLog.map(log => `
+        <tr><td>${log.time.toLocaleTimeString()}</td><td class="code-text">${log.method}</td><td class="code-text">${log.endpoint}</td><td><span class="status-badge ${log.status === 200 ? 'ok' : 'error'}">${log.status}</span></td><td>${log.latency}ms</td></tr>`).join('');
+}
+
+function initProfile() {
+    document.getElementById('profile-org-name').value = appState.organization.name;
+    document.getElementById('profile-org-id').value = appState.organization.id;
+    document.getElementById('profile-plan-name').textContent = appState.organization.plan;
+    document.getElementById('profile-quota-requests').textContent = (appState.organization.quotas.requests.limit / 1000000).toFixed(1) + "M";
+    document.getElementById('profile-quota-models').textContent = appState.organization.quotas.models.limit;
+
+    const renderUsageBar = (containerId, current, limit) => {
+        const percentage = Math.min((current / limit) * 100, 100);
+        document.getElementById(containerId).innerHTML = `<div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 0.25rem;"><span>${current.toLocaleString()} / ${limit.toLocaleString()}</span><span>${percentage.toFixed(1)}%</span></div><div class="usage-bar"> <div style="width: ${percentage}%;"></div> </div>`;
+    };
+    renderUsageBar('profile-usage-bar-requests', appState.organization.quotas.requests.current, appState.organization.quotas.requests.limit);
+    renderUsageBar('profile-usage-bar-models', appState.organization.quotas.models.current, appState.organization.quotas.models.limit);
+
+    document.querySelector('#teamMembersTable tbody').innerHTML = appState.organization.team.map(m => `
+        <tr><td>${m.name}</td><td>${m.email}</td><td><span class="status-badge ${m.role.toLowerCase() === 'admin' ? 'active' : 'deprecated'}">${m.role}</span></td><td><a href="#" class="action-link">Remove</a></td></tr>`).join('');
+}
+
+window.saveProfile = () => {
+    appState.organization.name = document.getElementById('profile-org-name').value;
+    saveState();
+    document.getElementById('org-name-sidebar').textContent = appState.organization.name;
+    alert('Organization profile updated!');
+}
+
+function initSetup() {
+    const contentArea = document.getElementById('setup-content-area');
+    const navList = document.getElementById('setup-nav-list');
+    
+    const guides = {
+        "setup-welcome": { title: "Welcome to DecisionChain", content: `<p class="data-description">DecisionChain is a decentralized platform for orchestrating high-stakes financial logic. We provide the tools to build, deploy, and manage transparent, auditable, and immutable decision-making processes on-chain.</p><p>Our core mission is to bring verifiable correctness to complex financial instruments. By leveraging smart contracts and trusted oracle data, DecisionChain ensures that your business logic is executed exactly as intended, every single time.</p>` },
+        "setup-quickstart": { title: "Quick Start Guide", content: `<h4>Step 1: Get Your API Key</h4><p>Your organization's unique API key is your passport to DecisionChain. You can find it in the <a href="#" onclick="document.querySelector('[data-page=api]').click()">API Portal</a>. Use this key in the 'Authorization' header of your requests as a Bearer token.</p><h4>Step 2: Register a Decision Model</h4><p>Models contain your core business logic. They are registered via our secure CLI and will then appear in the <a href="#" onclick="document.querySelector('[data-page=models]').click()">Model Control</a> panel. This separation ensures model integrity.</p><h4>Step 3: Deploy a Smart Contract</h4><p>Navigate to the <a href="#" onclick="document.querySelector('[data-page=registry]').click()">Contract Registry</a> and click "Deploy New Contract". Here, you can bind one of your registered models to an on-chain contract, making its logic executable.</p><h4>Step 4: Make Your First API Call</h4><p>Use the following examples to call your newly deployed lending model.</p><h5>cURL Example:</h5><pre class="code-block" id="setup-curl-example"></pre><h5>Node.js Example:</h5><pre class="code-block" id="setup-node-example"></pre>` },
+        "setup-concepts": { title: "Core Concepts", content: `<h4>Decision Models</h4><p>A Decision Model is an off-chain representation of your business logic (e.g., a credit scoring algorithm). You register its cryptographic hash with DecisionChain, ensuring that the logic executed on-chain perfectly matches your intended rules.</p><h4>Smart Contracts</h4><p>These are the on-chain executors. When you deploy a contract, you bind it to a specific version of a Decision Model. The contract takes input data, retrieves any necessary oracle data, and executes the decision logic immutably on the blockchain.</p><h4>Oracles</h4><p>Oracles are trusted, third-party data providers that feed real-world information (like interest rates or asset prices) to your smart contracts. The <a href="#" onclick="document.querySelector('[data-page=oracles]').click()">Oracle Monitor</a> allows you to view the health and integrity of these crucial data feeds.</p>` },
+        "setup-api-ref": { title: "API Endpoint Reference", content: `<div class="beta-table-container"><table class="beta-table"><thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead><tbody><tr><td>POST</td><td class="code-text">/api/v1/decision/lending</td><td>Submits data to a lending model for a decision.</td></tr><tr><td>POST</td><td class="code-text">/api/v1/decision/risk</td><td>Submits data to a risk classification model.</td></tr><tr><td>GET</td><td class="code-text">/api/v1/status</td><td>Checks the operational status of the API.</td></tr><tr><td>GET</td><td class="code-text">/api/v1/audit/{transactionId}</td><td>Retrieves the details of a specific past transaction.</td></tr></tbody></table></div>` }
+    };
+
+    const renderContent = (key) => {
+        contentArea.innerHTML = `<h2 class="section-header">${guides[key].title}</h2>${guides[key].content}`;
+        if (document.getElementById('setup-curl-example')) {
+            document.getElementById('setup-curl-example').textContent = `curl --request POST \\\n  --url https://api.decisionchain.com/api/v1/decision/lending \\\n  --header 'Authorization: Bearer ${appState.organization.apiKey}' \\\n  --header 'Content-Type: application/json' \\\n  --data '{\n    "creditScore": 750,\n    "dti": 0.3\n  }'`;
+        }
+        if (document.getElementById('setup-node-example')) {
+            document.getElementById('setup-node-example').textContent = `const options = {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer ${appState.organization.apiKey}',\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({creditScore: 750, dti: 0.3})\n};\n\nfetch('https://api.decisionchain.com/api/v1/decision/lending', options)\n  .then(response => response.json())\n  .then(data => console.log(data))\n  .catch(err => console.error(err));`;
+        }
+    };
+    
+    navList.addEventListener('click', (e) => {
+        if (e.target.tagName === 'A') {
+            e.preventDefault();
+            navList.querySelectorAll('a').forEach(a => a.classList.remove('active'));
+            e.target.classList.add('active');
+            const key = e.target.getAttribute('href').substring(1);
+            renderContent(key);
+        }
+    });
+
+    renderContent('setup-welcome');
+}
+    </script>
+</body>
+</html>
